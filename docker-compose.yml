@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Primary blockchain node (API + P2P)
+  blockchain-node-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blockchain-node-1
+    ports:
+      - "3001:3001"
+      - "6001:6001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - P2P_PORT=6001
+      - NODE_ID=node-1
+    networks:
+      - blockchain-network
+    volumes:
+      - blockchain-data-1:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Secondary blockchain node for P2P testing (optional)
+  blockchain-node-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blockchain-node-2
+    ports:
+      - "3002:3001"
+      - "6002:6001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - P2P_PORT=6001
+      - NODE_ID=node-2
+      - PEER_ADDR=ws://blockchain-node-1:6001
+    networks:
+      - blockchain-network
+    volumes:
+      - blockchain-data-2:/app/data
+    restart: unless-stopped
+    depends_on:
+      - blockchain-node-1
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Test runner (for CI/local testing)
+  blockchain-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blockchain-test
+    entrypoint: npm
+    command: test
+    environment:
+      - NODE_ENV=test
+    networks:
+      - blockchain-network
+    profiles:
+      - test
+
+networks:
+  blockchain-network:
+    driver: bridge
+
+volumes:
+  blockchain-data-1:
+  blockchain-data-2:
