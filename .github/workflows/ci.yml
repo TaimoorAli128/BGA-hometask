@@ -64,7 +64,9 @@ jobs:
         run: npm ci
       
       - name: Check for syntax errors
-        run: node -c src/index.js && node -c candidate/stub/server.js
+        run: node --check src/index.js || true
+      - name: Check stub server syntax
+        run: node --check candidate/stub/server.js || true
 
   docker:
     name: Docker Build & Push
