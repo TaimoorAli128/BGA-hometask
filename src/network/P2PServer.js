@@ -20,9 +20,21 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-    // start listening on next tick to ensure callers can attach 'listening' handlers
-    setImmediate(() => httpServer.listen(this.port));
-    return { server: httpServer };
+    const EventEmitter = require('events');
+    const proxy = new EventEmitter();
+    // proxy.address() and close() to underlying server
+    proxy.address = () => httpServer.address();
+    proxy.close = (cb) => {
+      try { wss.close(() => {}); } catch (e) {}
+      try { httpServer.close(cb); } catch (e) { if (cb) cb(); }
+    };
+    // start listening on next tick and forward 'listening'
+    setImmediate(() => {
+      httpServer.listen(this.port, () => {
+        proxy.emit('listening');
+      });
+    });
+    return { server: proxy };
   }
 
   connectSocket(ws) {
