@@ -6,31 +6,35 @@ class Mempool {
   }
 
   add(transaction) {
-    notImplemented('Mempool.add');
+    if (transaction.isCoinbase && transaction.isCoinbase()) throw new Error('Coinbase transactions cannot be added to mempool');
+    if (this.transactions.has(transaction.id)) throw new Error('Transaction already in mempool');
+    if (typeof transaction.verify === 'function' && !transaction.verify()) throw new Error('Invalid transaction signature');
+    this.transactions.set(transaction.id, transaction);
+    return transaction.id;
   }
 
   remove(transactionId) {
-    notImplemented('Mempool.remove');
+    this.transactions.delete(transactionId);
   }
 
   removeMany(ids) {
-    notImplemented('Mempool.removeMany');
+    for (const id of ids) this.remove(id);
   }
 
   getPending(limit = 100) {
-    notImplemented('Mempool.getPending');
+    return Array.from(this.transactions.values()).slice(0, limit);
   }
 
   has(transactionId) {
-    notImplemented('Mempool.has');
+    return this.transactions.has(transactionId);
   }
 
   clear() {
-    notImplemented('Mempool.clear');
+    this.transactions.clear();
   }
 
   size() {
-    notImplemented('Mempool.size');
+    return this.transactions.size;
   }
 }
 
