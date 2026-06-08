@@ -33,6 +33,15 @@ class P2PServer {
     httpServer.on('close', () => proxy.emit('close'));
     httpServer.on('error', (err) => proxy.emit('error', err));
 
+    // If a test attaches 'listening' after the server already started,
+    // invoke the handler immediately so it doesn't miss the event.
+    const origOn = proxy.on.bind(proxy);
+    proxy.on = (ev, cb) => {
+      const res = origOn(ev, cb);
+      if (ev === 'listening' && httpServer.listening) setImmediate(cb);
+      return res;
+    };
+
     // expose proxy as this.server so tests can attach 'listening' before
     // the server actually begins listening
     this.server = proxy;
