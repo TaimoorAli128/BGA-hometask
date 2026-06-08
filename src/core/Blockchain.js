@@ -91,8 +91,14 @@ class Blockchain {
     const block = new Block(this.chain.length, Date.now(), txs, previousHash, 0, this.getDifficultyForNextBlock());
     block.mine();
     this.chain.push(block);
-    // apply transactions to utxoSet
-    this.utxoSet.applyBlock(txs);
+    // ensure coinbase reward is added, then apply pending txs
+    try {
+      this.utxoSet.add(coinbase);
+    } catch (e) {
+      // fallback to applyBlock if add fails for some reason
+      this.utxoSet.applyBlock([coinbase]);
+    }
+    if (pending && pending.length) this.utxoSet.applyBlock(pending);
     // remove pending txs from mempool
     const ids = pending.map((t) => t.id);
     this.mempool.removeMany(ids);
