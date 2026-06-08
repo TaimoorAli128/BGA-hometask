@@ -91,12 +91,8 @@ class Blockchain {
     const block = new Block(this.chain.length, Date.now(), txs, previousHash, 0, this.getDifficultyForNextBlock());
     block.mine();
     this.chain.push(block);
-    // add coinbase outputs to utxoSet (coinbase has no inputs to spend)
-    for (let i = 0; i < coinbase.outputs.length; i++) {
-      const out = coinbase.outputs[i];
-      const key = `${coinbase.id}:${i}`;
-      this.utxoSet.utxos.set(key, { txId: coinbase.id, outputIndex: i, address: out.address, amount: out.amount });
-    }
+    // add coinbase using the dedicated method
+    this.utxoSet.add(coinbase);
     // apply pending transactions
     for (const tx of pending) {
       this.utxoSet.applyTransaction(tx);
