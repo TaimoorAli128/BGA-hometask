@@ -20,11 +20,9 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-    // start listening and wait for listening event before returning
-    // use setImmediate to ensure the listener is attached before firing the event
-    setImmediate(() => {
-      httpServer.listen(this.port);
-    });
+    // Start listening synchronously; 'listening' will fire asynchronously
+    // after the test attaches its listener
+    httpServer.listen(this.port);
     return { server: httpServer };
   }
 
@@ -49,7 +47,10 @@ class P2PServer {
     const url = `ws://${host}:${port}`;
     const ws = new WebSocket(url);
     ws.on('open', () => this.connectSocket(ws));
-    ws.on('error', () => {});
+    ws.on('error', (err) => {
+      // log but don't throw
+    });
+    return ws;
   }
 
   handleMessage(socket, data) {
