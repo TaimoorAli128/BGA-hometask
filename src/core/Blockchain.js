@@ -39,7 +39,6 @@ class Blockchain {
   validateTransactionInContext(tx, utxoSnapshot) {
     const snapshot = utxoSnapshot || this.utxoSet.clone();
     if (tx.isCoinbase()) return { valid: true, reason: null };
-    if (!tx.verify()) return { valid: false, reason: 'Invalid transaction signature' };
     // ensure inputs exist and sum inputs
     let inputSum = 0;
     for (const inp of tx.inputs) {
@@ -50,6 +49,7 @@ class Blockchain {
     }
     const outputSum = tx.outputs.reduce((s, o) => s + o.amount, 0);
     if (outputSum > inputSum) return { valid: false, reason: 'Outputs exceed inputs' };
+    if (!tx.verify()) return { valid: false, reason: 'Invalid transaction signature' };
     return { valid: true, reason: null };
   }
 
