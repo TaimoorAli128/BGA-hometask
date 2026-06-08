@@ -20,24 +20,12 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-    const EventEmitter = require('events');
-    const proxy = new EventEmitter();
-    // proxy.address() and close() to underlying server
-    proxy.address = () => httpServer.address();
-    proxy.close = (cb) => {
-      try { wss.close(() => {}); } catch (e) {}
-      try { httpServer.close(cb); } catch (e) { if (cb) cb(); }
-    };
-    // expose the proxy as this.server so callers that don't capture the
-    // returned value still get a closeable/listenable server object
-    this.server = proxy;
-    // start listening on next tick and forward 'listening'
-    setImmediate(() => {
-      httpServer.listen(this.port, () => {
-        proxy.emit('listening');
-      });
-    });
-    return { server: proxy };
+    // start listening and expose the actual http server for address/close/listening
+    this.server = httpServer;
+    httpServer.listen(this.port);
+    // ensure websocket server will accept connections after http server is listening
+    httpServer.on('listening', () => {});
+    return { server: httpServer };
   }
 
   connectSocket(ws) {
