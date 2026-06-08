@@ -19,33 +19,18 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-
     const EventEmitter = require('events');
     const proxy = new EventEmitter();
-
     proxy.address = () => httpServer.address();
     proxy.close = (cb) => {
       try { wss.close(() => {}); } catch (e) {}
       try { httpServer.close(cb); } catch (e) { if (cb) cb(); }
     };
-
     httpServer.on('listening', () => proxy.emit('listening'));
     httpServer.on('close', () => proxy.emit('close'));
     httpServer.on('error', (err) => proxy.emit('error', err));
-
-    // If a test attaches 'listening' after the server already started,
-    // invoke the handler immediately so it doesn't miss the event.
-    const origOn = proxy.on.bind(proxy);
-    proxy.on = (ev, cb) => {
-      const res = origOn(ev, cb);
-      if (ev === 'listening' && httpServer.listening) setImmediate(cb);
-      return res;
-    };
-
-    // expose proxy as this.server so tests can attach 'listening' before
-    // the server actually begins listening
     this.server = proxy;
-    setImmediate(() => httpServer.listen(this.port));
+    httpServer.listen(this.port);
     return { server: proxy };
   }
 
