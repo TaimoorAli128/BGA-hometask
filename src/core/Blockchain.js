@@ -22,7 +22,10 @@ class Blockchain {
 
   createGenesisBlock(minerAddress) {
     const coinbase = Transaction.coinbase(minerAddress, MINING_REWARD);
-    return createGenesisBlock(coinbase, this.difficulty);
+    const g = createGenesisBlock(coinbase, this.difficulty);
+    // ensure genesis meets difficulty
+    g.mine();
+    return g;
   }
 
   getLatestBlock() {
@@ -34,14 +37,20 @@ class Blockchain {
   }
 
   validateTransactionInContext(tx, utxoSnapshot) {
-    if (tx.isCoinbase()) return true;
-    if (!tx.verify()) return false;
-    // ensure inputs are present
+    const snapshot = utxoSnapshot || this.utxoSet.clone();
+    if (tx.isCoinbase()) return { valid: true, reason: null };
+    if (!tx.verify()) return { valid: false, reason: 'Invalid transaction signature' };
+    // ensure inputs exist and sum inputs
+    let inputSum = 0;
     for (const inp of tx.inputs) {
       const key = `${inp.txId}:${inp.outputIndex}`;
-      if (!utxoSnapshot.has(key)) return false;
+      const entry = snapshot.utxos ? snapshot.utxos.get(key) : snapshot.get(key);
+      if (!entry) return { valid: false, reason: 'Referenced UTXO not found' };
+      inputSum += entry.amount;
     }
-    return true;
+    const outputSum = tx.outputs.reduce((s, o) => s + o.amount, 0);
+    if (outputSum > inputSum) return { valid: false, reason: 'Outputs exceed inputs' };
+    return { valid: true, reason: null };
   }
 
   getUtxoSnapshotIncludingMempool(excludeTxId = null) {
@@ -65,6 +74,13 @@ class Blockchain {
   }
 
   addTransaction(transaction) {
+    // Validate transaction against utxo snapshot including current mempool
+    const snapshot = this.getUtxoSnapshotIncludingMempool();
+    const res = this.validateTransactionInContext(transaction, snapshot);
+    if (!res || !res.valid) {
+      const reason = res && res.reason ? res.reason : 'Invalid transaction';
+      throw new Error(reason);
+    }
     return this.mempool.add(transaction);
   }
 
