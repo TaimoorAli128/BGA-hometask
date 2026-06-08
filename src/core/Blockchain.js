@@ -91,12 +91,8 @@ class Blockchain {
     const block = new Block(this.chain.length, Date.now(), txs, previousHash, 0, this.getDifficultyForNextBlock());
     block.mine();
     this.chain.push(block);
-    // apply coinbase outputs explicitly
-    this.utxoSet.add(coinbase);
-    // apply pending transactions (which may spend genesis or earlier coinbases)
-    for (const tx of pending) {
-      this.utxoSet.applyTransaction(tx);
-    }
+    // apply all block transactions to utxoSet
+    this.utxoSet.applyBlock(txs);
     // remove pending txs from mempool
     const ids = pending.map((t) => t.id);
     this.mempool.removeMany(ids);
