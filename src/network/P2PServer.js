@@ -23,6 +23,10 @@ class P2PServer {
     const proxy = new EventEmitter();
     proxy.address = () => httpServer.address();
     proxy.close = (cb) => {
+      // close all active websocket connections first
+      for (const s of this.sockets) {
+        try { s.close(); } catch (e) {}
+      }
       try { wss.close(() => {}); } catch (e) {}
       try { httpServer.close(cb); } catch (e) { if (cb) cb(); }
     };
