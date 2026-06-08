@@ -101,14 +101,34 @@ class Blockchain {
   }
 
   isChainValid() {
-    // basic chain validation by replaying utxos
+    const { sha256, meetsDifficulty } = require('../crypto/hash');
+    const { MerkleTree } = require('./MerkleTree');
     const utxo = new UTXOSet();
     for (let i = 0; i < this.chain.length; i++) {
       const block = this.chain[i];
       const prev = i === 0 ? null : this.chain[i - 1];
-      if (!block.isValid(prev)) return false;
-      // apply transactions
-      utxo.applyBlock(block.transactions);
+      // check previous hash linkage
+      if (i === 0) {
+        if (block.previousHash !== '0') return false;
+      } else {
+        if (block.previousHash !== prev.hash) return false;
+      }
+      // recompute merkle root
+      const ids = (block.transactions || []).map((t) => t.id);
+      const root = ids.length ? new MerkleTree(ids).root : null;
+      if (block.merkleRoot !== root) return false;
+      // recompute block hash
+      const payload = JSON.stringify({ index: block.index, timestamp: block.timestamp, previousHash: block.previousHash, nonce: block.nonce, difficulty: block.difficulty, merkleRoot: block.merkleRoot });
+      const calcHash = sha256(payload);
+      if (calcHash !== block.hash) return false;
+      if (!meetsDifficulty(block.hash, block.difficulty)) return false;
+      // validate transactions in order against current utxo snapshot
+      for (const tx of block.transactions) {
+        const res = this.validateTransactionInContext(tx, utxo);
+        if (!res || !res.valid) return false;
+        // apply transaction to utxo replay
+        utxo.applyTransaction(tx);
+      }
     }
     return true;
   }
