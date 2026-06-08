@@ -91,12 +91,8 @@ class Blockchain {
     const block = new Block(this.chain.length, Date.now(), txs, previousHash, 0, this.getDifficultyForNextBlock());
     block.mine();
     this.chain.push(block);
-    // rebuild utxo set from chain to ensure consistency
-    const newSet = new UTXOSet();
-    for (const b of this.chain) {
-      newSet.applyBlock(b.transactions);
-    }
-    this.utxoSet = newSet;
+    // apply transactions to utxoSet
+    this.utxoSet.applyBlock(txs);
     // remove pending txs from mempool
     const ids = pending.map((t) => t.id);
     this.mempool.removeMany(ids);

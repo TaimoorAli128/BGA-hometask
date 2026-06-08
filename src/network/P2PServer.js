@@ -20,11 +20,11 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-    // start listening and expose the actual http server for address/close/listening
-    this.server = httpServer;
-    httpServer.listen(this.port);
-    // ensure websocket server will accept connections after http server is listening
-    httpServer.on('listening', () => {});
+    // start listening and wait for listening event before returning
+    // use setImmediate to ensure the listener is attached before firing the event
+    setImmediate(() => {
+      httpServer.listen(this.port);
+    });
     return { server: httpServer };
   }
 
