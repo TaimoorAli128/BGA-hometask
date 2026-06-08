@@ -20,7 +20,8 @@ class P2PServer {
     wss.on('connection', (ws) => {
       this.connectSocket(ws);
     });
-    httpServer.listen(this.port);
+    // start listening on next tick to ensure callers can attach 'listening' handlers
+    setImmediate(() => httpServer.listen(this.port));
     return { server: httpServer };
   }
 

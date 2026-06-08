@@ -12,9 +12,8 @@ class Blockchain {
     this.utxoSet = new UTXOSet();
     this.chain = [];
     this.minerAddress = minerAddress;
-    // create genesis
-    const coinbase = Transaction.coinbase(minerAddress, MINING_REWARD);
-    const genesis = createGenesisBlock(coinbase, this.difficulty);
+    // create genesis (ensure it's mined via createGenesisBlock)
+    const genesis = this.createGenesisBlock(minerAddress);
     this.chain.push(genesis);
     // apply genesis utxos
     this.utxoSet.applyBlock(genesis.transactions);
