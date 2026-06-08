@@ -28,6 +28,9 @@ class P2PServer {
       try { wss.close(() => {}); } catch (e) {}
       try { httpServer.close(cb); } catch (e) { if (cb) cb(); }
     };
+    // expose the proxy as this.server so callers that don't capture the
+    // returned value still get a closeable/listenable server object
+    this.server = proxy;
     // start listening on next tick and forward 'listening'
     setImmediate(() => {
       httpServer.listen(this.port, () => {
